@@ -24,8 +24,8 @@ def resize_with_aspect_ratio(image, width=None, height=None):
 
 
 # cap = cv2.VideoCapture("poker_black.mp4")
-cap = cv2.VideoCapture("pokerG2.mp4")
-# cap = cv2.VideoCapture(1)
+# cap = cv2.VideoCapture("pokerG2.mp4")
+cap = cv2.VideoCapture(1)
 
 # Desired width and height
 width = 640
@@ -93,7 +93,6 @@ while True:
 
     # plt.figure(figsize=(12, 6))
     for i, (img, original) in enumerate(cropped_images):
-
         drawable = img.copy()
         d2 = original.copy()
 

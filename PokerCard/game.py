@@ -21,6 +21,7 @@ SMALL_FONT = pygame.font.SysFont("Arial", 24)
 # Suara
 pass_sound = pygame.mixer.Sound("pass_sound.wav")
 player_turn_sound = pygame.mixer.Sound("player_turn.wav")
+woosh_sound = pygame.mixer.Sound("woosh.wav")
 
 # Rank dan Suit
 RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
@@ -106,6 +107,8 @@ def play_card(card):
         player_cards.remove(card)
         player_turn = "ai"
         is_passed = False
+        return 1
+        
 
 # Fungsi untuk membandingkan kartu
 def compare_cards(card1, card2):
@@ -148,7 +151,9 @@ def main():
                 if player_turn == "player":
                     for i, card in enumerate(player_cards):
                         if 50 <= mouse_pos[0] <= 300 and HEIGHT - 300 + i * 30 <= mouse_pos[1] <= HEIGHT - 270 + i * 30:
-                            play_card(card)
+                            if play_card(card):
+                                woosh_sound.play()
+                            
                     if WIDTH // 2 - 75 <= mouse_pos[0] <= WIDTH // 2 + 75 and HEIGHT - 200 <= mouse_pos[1] <= HEIGHT - 150:
                         is_passed = True
                         player_turn = "ai"
