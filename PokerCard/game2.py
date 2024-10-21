@@ -76,14 +76,10 @@ def deal_cards():
     ai_cards = deck[10:20]
 
 # Fungsi untuk menentukan giliran pertama
-
-
 def suitPlayer():
     return random.choice(["player", "ai"])
 
 # Fungsi untuk login page
-
-
 def login_page():
     SCREEN.fill(GREEN)
     title_text = FONT.render("Welcome to Poker Game", True, WHITE)
@@ -92,8 +88,6 @@ def login_page():
     draw_button("Play", WIDTH // 2 - 75, HEIGHT // 2, 150, 50, YELLOW)
 
 # Fungsi untuk halaman game
-
-
 def game_page():
     SCREEN.fill(GREEN)
     game_text = FONT.render("Poker Game - Main Page", True, WHITE)
@@ -123,11 +117,9 @@ def game_page():
     SCREEN.blit(turn_text, (WIDTH // 2 - turn_text.get_width() // 2, 100))
 
 # Fungsi untuk memainkan kartu
-
-
 def play_card(card):
     global last_card_played, player_turn, is_passed
-    if card in player_cards and (is_passed or compare_cards(card, last_card_played)):
+    if is_passed or compare_cards(card, last_card_played):
         last_card_played = (*card, "player")
         player_cards.remove(card)
         player_turn = "ai"
@@ -244,20 +236,9 @@ def main():
             d2 = original.copy()
 
             contours, _ = cv2.findContours(drawable, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
             cnts_sort = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
-
             cnts_sort = sorted(cnts_sort, key=lambda x: cv2.boundingRect(x)[1])
-            
-            # for cnt in cnts_sort:
-                # print(f'contour sorts = {cv2.contourArea(cnt)}')
-
             cv2.drawContours(drawable, cnts_sort, -1, (0, 255, 0), 1)
-
-            # cv2.imwrite(f'{i}.jpg', drawable)
-            # plt.grid(True)
-            # plt.subplot(1, len(cropped_images), i+1)
-            # plt.imshow(img)
 
             ranksuit = list()
 
@@ -281,7 +262,6 @@ def main():
             ranksuit_list.append(ranksuit)
             
         black_img = np.zeros((120, 70))
-        # plt.figure(figsize=(12, 6))
         for i, ranksuit in enumerate(ranksuit_list):
 
             rank = black_img
@@ -328,8 +308,8 @@ def main():
                 if player_turn == "player":
                     for i, card in enumerate(player_cards):
                         if 50 <= mouse_pos[0] <= 300 and HEIGHT - 300 + i * 30 <= mouse_pos[1] <= HEIGHT - 270 + i * 30:
-                            if play_card(card):
-                                woosh_sound.play()
+                            play_card(card)
+                                
                         
                     if WIDTH // 2 - 75 <= mouse_pos[0] <= WIDTH // 2 + 75 and HEIGHT - 200 <= mouse_pos[1] <= HEIGHT - 150:
                         is_passed = True
