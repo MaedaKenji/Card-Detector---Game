@@ -24,8 +24,8 @@ def resize_with_aspect_ratio(image, width=None, height=None):
 
 
 # cap = cv2.VideoCapture("poker_black.mp4")
-# cap = cv2.VideoCapture("pokerG2.mp4")
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture("pokerG2.mp4")
+# cap = cv2.VideoCapture(1)
 
 # Desired width and height
 width = 640
@@ -160,9 +160,9 @@ while True:
     # plt.show()
     
     # train_ranks = Loader.load_ranks('imgs/ranks')
-    train_ranks = Loader.load_ranks('PokerCard/imgs/ranks')
+    train_ranks = Loader.load_ranks('imgs/ranks')
     # PokerCard/imgs/ranks
-    train_suits = Loader.load_suits('PokerCard/imgs/suits')
+    train_suits = Loader.load_suits('imgs/suits')
 
     # print(train_ranks[0].img.shape)
     # print(train_suits[0].img.shape)
