@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
 import os
-import math
 from skimage.feature import hog
-from sklearn import svm
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
 
 
 def DrawCircle(image, y, x):
@@ -129,18 +129,22 @@ def match_card(rank_image, suit_image, ranks_path, suits_path, threshold=0.8):
     return result
 
 
-def preprocess_image(img):
-    img_resized = cv2.resize(img, (70, 120))
-    img_gray = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
-    _, img_thresh = cv2.threshold(img_gray, 127, 255, cv2.THRESH_BINARY)
-    img_blur = cv2.GaussianBlur(img_thresh, (5, 5), 0)
-    img_normalized = img_blur / 255.0
-    img_flatten = img_normalized.flatten()
-    return img_flatten
+def preprocess_image(img, target_size):
+    img = cv2.resize(img, target_size)
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = img_array / 255.0  # Normalisasi
+    return img_array
 
 
 colors = np.random.randint(0, 255, size=(10, 3), dtype=np.uint8)
 colors[0] = [0, 0, 0]
+rank_model = tf.keras.models.load_model(r"kuliah/rank_classification_model.h5")
+suit_model = tf.keras.models.load_model(r"kuliah/suit_classification_model.h5")
+rank_img_size = (70, 125)
+suit_img_size = (70, 100)
+rank_labels = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+suit_labels = ["D", "H", "S", "C"]
 # Akses kamera
 # cam = cv2.VideoCapture(1)
 # cam = cv2.VideoCapture("dump.mp4")
@@ -153,7 +157,6 @@ colors[0] = [0, 0, 0]
 input_source = "image2.jpg"
 # input_source = "dump.mp4"
 cam = cv2.VideoCapture(input_source)
-
 
 
 if not cam.isOpened() :
@@ -187,14 +190,13 @@ while True:
 
     foreground = cv2.bitwise_and(frame, frame, mask=mask)
 
-    
     # Konversi foreground ke skala abu-abu untuk mencari kontur
     gray_foreground = cv2.cvtColor(foreground, cv2.COLOR_BGR2GRAY)
 
     # Cari kontur pada foreground (citra biner)
     contours, _ = cv2.findContours(
         gray_foreground, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
+
     fixed_width = 200
     fixed_height = 300
 
@@ -238,7 +240,7 @@ while True:
 
         # Tampilkan hasil kartu yang telah diluruskan
         cv2.imshow(f"Card {idx + 1}", flattened_card)
-        
+
         # Ukuran kartu yang sudah diluruskan
         card_height, card_width = flattened_card.shape[:2]
 
@@ -268,6 +270,7 @@ while True:
         # Variabel untuk menghitung jumlah label yang valid
         num_labels = 0
 
+
         # Loop melalui setiap kontur dan menggambar dengan warna yang berbeda
         for i, contour in enumerate(contours):
             # Hitung area kontur
@@ -281,25 +284,16 @@ while True:
             num_labels += 1
             # Crop bagian dari gambar asli berdasarkan bounding box kontur yang valid
             x, y, w, h = cv2.boundingRect(contour)
-            cropped_card.append(colored_labels[y:y + h, x:x + w])  # Append colored_labels[y:y + h, x:x + w]        # Tambahkan teks untuk menampilkan jumlah label pada gambar
+            cropped = colored_labels[y:y + h, x:x + w]
+            if num_labels % 2 == 0:
+                cropped_suit.append((cropped, (x, y, w, h)))
+            else:
+                cropped_rank.append((cropped, (x, y, w, h)))
+
         
+
     for i in range(len(cropped_card)):
         cv2.imshow(f"Card {idx + 1} - Label {i + 1}", cropped_card[i])
-    
-
-
-        
-
-        
-
-
-
-
-    
-
-    
-
-   
     cv2.imshow('frame', frame)
 
     if cv2.waitKey(1) == ord('q'):
