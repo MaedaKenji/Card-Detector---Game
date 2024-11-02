@@ -1,9 +1,11 @@
 import cv2
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from skimage.feature import hog
 import tensorflow as tf
 from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import load_model
 
 
 def DrawCircle(image, y, x):
@@ -137,14 +139,11 @@ def preprocess_image(img, target_size):
     return img_array
 
 
-colors = np.random.randint(0, 255, size=(10, 3), dtype=np.uint8)
-colors[0] = [0, 0, 0]
-rank_model = tf.keras.models.load_model(r"kuliah/rank_classification_model.h5")
-suit_model = tf.keras.models.load_model(r"kuliah/suit_classification_model.h5")
-rank_img_size = (70, 125)
-suit_img_size = (70, 100)
-rank_labels = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-suit_labels = ["D", "H", "S", "C"]
+model = load_model("kuliah/model.h5")  # Pastikan path model benar
+dataset_path = "dataset/train"  # Pastikan path ke dataset benar
+labels = sorted(os.listdir(dataset_path))
+
+
 # Akses kamera
 # cam = cv2.VideoCapture(1)
 # cam = cv2.VideoCapture("dump.mp4")
@@ -197,8 +196,8 @@ while True:
     contours, _ = cv2.findContours(
         gray_foreground, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    fixed_width = 200
-    fixed_height = 300
+    fixed_width = 224
+    fixed_height = 224
 
     for idx, contour in enumerate(contours):
         # Mengabaikan kontur kecil yang mungkin hanya noise
@@ -210,6 +209,12 @@ while True:
         # Mendapatkan empat titik sudut dari kotak rotasi
         box = cv2.boxPoints(rect)
         box = np.int0(box)  # Mengubah koordinat ke tipe integer
+        center = rect[0]
+        center_x, center_y = center
+        # to int
+        center_x = int(center_x)
+        center_y = int(center_y)
+
 
         # Gambar kotak di sekitar objek (kartu poker) sesuai rotasi
         cv2.drawContours(frame, [box], 0, (0, 255, 0), 2)
@@ -237,60 +242,33 @@ while True:
 
         # Lakukan transformasi perspektif untuk meluruskan kartu
         flattened_card = cv2.warpPerspective(frame, M, (fixed_width, fixed_height))
-
         # Tampilkan hasil kartu yang telah diluruskan
         cv2.imshow(f"Card {idx + 1}", flattened_card)
 
-        # Ukuran kartu yang sudah diluruskan
-        card_height, card_width = flattened_card.shape[:2]
+        # flattened card to rgb
+        flattened_card = cv2.cvtColor(flattened_card, cv2.COLOR_BGR2RGB)
 
-        # Crop bagian kiri atas dari kartu (sesuaikan area crop seperti referensi)
-        top_left_crop = flattened_card[5:110, 1:38]
+        # Ukuran flattened_card
+        resized_card = cv2.resize(flattened_card, (150, 150))
+        input_data = np.expand_dims(resized_card, axis=0)
 
-        # Resize crop kiri atas dengan faktor 4 (perbesar agar lebih jelas)
-        top_left_crop_resized = cv2.resize(top_left_crop, None, fx=4, fy=4)
+        # Predict using the model
+        predictions = model.predict(input_data, verbose=0)
+        class_id = np.argmax(predictions)
+        confidence = predictions[0][class_id]
+        label = labels[class_id]
 
-        # Konversi gambar yang sudah di-crop ke skala abu-abu
-        gray = cv2.cvtColor(top_left_crop_resized, cv2.COLOR_BGR2GRAY)
+        # Display the predictions on the frame
 
-        # Threshold gambar abu-abu untuk meningkatkan kontras (mirip referensi)
-        # Asumsikan bin_img sudah ada sebagai hasil dari thresholding
-        _, bin_img = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)  # Threshold binary inverse
-        cv2.imshow(f"Card {idx + 1} - Binary", bin_img)
-
-        #############
-        colored_labels = cv2.cvtColor(bin_img, cv2.COLOR_GRAY2BGR)
-
-        # Mendeteksi kontur pada gambar biner
-        contours, _ = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        # Ambang batas minimum untuk area kontur
-        min_contour_area = 100  # Anda dapat menyesuaikan threshold ini sesuai dengan kebutuhan
-
-        # Variabel untuk menghitung jumlah label yang valid
-        num_labels = 0
-
-
-        # Loop melalui setiap kontur dan menggambar dengan warna yang berbeda
-        for i, contour in enumerate(contours):
-            # Hitung area kontur
-            area = cv2.contourArea(contour)
-
-            # Jika area kontur lebih kecil dari ambang batas, lewati untuk mengurangi noise
-            if area < min_contour_area:
-                continue
-
-            # Kontur dianggap valid, tingkatkan jumlah label
-            num_labels += 1
-            # Crop bagian dari gambar asli berdasarkan bounding box kontur yang valid
-            x, y, w, h = cv2.boundingRect(contour)
-            cropped = colored_labels[y:y + h, x:x + w]
-            if num_labels % 2 == 0:
-                cropped_suit.append((cropped, (x, y, w, h)))
-            else:
-                cropped_rank.append((cropped, (x, y, w, h)))
-
-        
+        # Hitung titik x yang fleksibel agar tidak menimpa titik tengah
+        # Dengan cara ini, teks akan ditampilkan sedikit di sebelah kanan dari titik pusat
+        text = f"{label}"
+        (text_width, text_height), baseline = cv2.getTextSize(
+            text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2
+        )
+        text_x = center_x - (text_width // 2)  # Menempatkan teks di tengah sesuai lebar teks
+        text_y = center_y - 10 
+        cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     for i in range(len(cropped_card)):
         cv2.imshow(f"Card {idx + 1} - Label {i + 1}", cropped_card[i])
