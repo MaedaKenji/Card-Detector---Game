@@ -25,7 +25,8 @@ def resize_with_aspect_ratio(image, width=None, height=None):
 
 # cap = cv2.VideoCapture("poker_black.mp4")
 # cap = cv2.VideoCapture("pokerG2.mp4")
-cap = cv2.VideoCapture(1)
+# cap = cv2.VideoCapture("play2_2.mp4")
+# cap = cv2.VideoCapture(1)
 
 # Desired width and height
 width = 640

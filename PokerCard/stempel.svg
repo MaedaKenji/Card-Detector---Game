@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer circle -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#000" stroke-width="2"/>
+  
+  <!-- Inner circle -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="#000" stroke-width="1"/>
+  
+  <!-- Text path around circle -->
+  <path id="circle" d="M 100,30 A 70,70 0 1 1 99.9,30" fill="none"/>
+  <text>
+    <textPath href="#circle" startOffset="0%">
+      * YOUR COMPANY NAME * OFFICIAL STAMP *
+    </textPath>
+  </text>
+  
+  <!-- Center text -->
+  <text x="100" y="100" text-anchor="middle" font-size="14">
+    Your Text Here
+  </text>
+</svg>

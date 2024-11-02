@@ -181,7 +181,7 @@ def main():
     sct = mss()
 
     # CV2
-    # cap = cv2.VideoCapture("dump.mp4")
+    cap = cv2.VideoCapture("dump.mp4")
     # cap = cv2.VideoCapture(0)
 
     while True:

@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from skimage.feature import hog
+from sklearn import svm
 
 
 def DrawCircle(image, y, x):
@@ -63,6 +65,26 @@ def combine_images(images, cols=2):
         combined[r*height:(r+1)*height, c*width:(c+1)*width] = cv2.resize(img, (width, height))
     
     return combined
+
+def load_dataset(data_path):
+    images = []
+    labels = []
+    # Kode untuk memuat gambar dan label dari data_path
+    # ...
+    return images, labels
+
+def extract_features(image):
+    # Konversi gambar ke grayscale jika belum
+    if len(image.shape) > 2:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Resize gambar ke ukuran tetap
+    image = cv2.resize(image, (64, 64))
+    
+    # Ekstrak fitur HOG
+    features, _ = hog(image, orientations=8, pixels_per_cell=(8, 8),
+                      cells_per_block=(2, 2), visualize=True)
+    return features
 
 
 # Variabels

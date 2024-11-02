@@ -187,8 +187,9 @@ def main():
     player_turn = suitPlayer()
 
     # CV2
-    # cap = cv2.VideoCapture("dump.mp4")
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture("dump.mp4")
+    # cap = cv2.VideoCapture("play2_2.mp4")
+    # cap = cv2.VideoCapture(1)
     
     width = 640
     height = 480
