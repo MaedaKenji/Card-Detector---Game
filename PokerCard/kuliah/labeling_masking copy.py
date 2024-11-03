@@ -195,7 +195,9 @@ count = 0
 fps_history = collections.deque(maxlen=10)
 
 # input_source = "play2_2.mp4"
-input_source = "image.jpg"
+input_source = "image3.jpg"
+input_source = "dump.mp4"
+# input_source = 0
 
 cam = cv2.VideoCapture(input_source)
 
@@ -205,7 +207,7 @@ if not cam.isOpened() :
     exit()
 
 while True:
-    if input_source.endswith(".jpg"):
+    if type(input_source) == str and input_source.endswith(".jpg"):
         cam = cv2.VideoCapture(input_source)
     ret, frame = cam.read()
     if not ret:
@@ -214,6 +216,10 @@ while True:
 
     flattened_cards = []
     cards = []
+    dealer_cards = []
+    player_cards = []
+    frame_height, frame_width = frame.shape[:2]
+    mid_line_y = frame_height // 2  # Posisi garis horizontal di tengah
 
     if state == 0:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -300,6 +306,12 @@ while True:
             confidence = predictions[0][class_id]
             label = labels[class_id]
             cards.append(label)
+            
+             # Pisahkan kartu berdasarkan garis tengah
+            if center_y < mid_line_y:
+                dealer_cards.append(label)  # Kartu di atas garis untuk bandar
+            else:
+                player_cards.append(label)  # Kartu di bawah garis untuk player
 
             text = f"{label}"
             (text_width, text_height), baseline = cv2.getTextSize(
@@ -307,10 +319,20 @@ while True:
             )
             text_x = center_x - (text_width // 2)  # Menempatkan teks di tengah sesuai lebar teks
             text_y = center_y - 10 
-            cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 2)
 
-        score = calculate_blackjack_score(cards)
-        cv2.putText(frame, f"Score: {score}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        
+        # Draw horizontal line
+        cv2.line(frame, (0, frame.shape[0]//2), (frame.shape[1], frame.shape[0]//2), (0, 255, 0), 2)
+        # Hitung skor untuk dealer dan player
+        dealer_score = calculate_blackjack_score(dealer_cards)
+        player_score = calculate_blackjack_score(player_cards)
+
+        # Tampilkan skor pada frame
+        cv2.putText(frame, f"Dealer Score: {dealer_score}", (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+        cv2.putText(frame, f"Player Score: {player_score}", (10, frame_height - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+    
 
     current_time = time.time()
 
