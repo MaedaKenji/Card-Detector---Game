@@ -186,8 +186,8 @@ def calculate_blackjack_score(cards):
     return total_score
 
 
-model = load_model("kuliah/model.h5")  # Pastikan path model benar
-dataset_path = "dataset/train"  # Pastikan path ke dataset benar
+model = load_model("kuliah/model.h5")
+dataset_path = "dataset/train"  
 labels = sorted(os.listdir(dataset_path))
 state = 0
 prev_time = 0
@@ -195,7 +195,7 @@ count = 0
 fps_history = collections.deque(maxlen=10)
 
 # input_source = "play2_2.mp4"
-input_source = "image3.jpg"
+# input_source = "image.jpg"
 input_source = "dump.mp4"
 # input_source = 0
 
@@ -219,7 +219,7 @@ while True:
     dealer_cards = []
     player_cards = []
     frame_height, frame_width = frame.shape[:2]
-    mid_line_y = frame_height // 2  # Posisi garis horizontal di tengah
+    mid_line_y = frame_height // 2
 
     if state == 0:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -227,112 +227,84 @@ while True:
         upper = np.array([80, 255, 255])
 
         mask = cv2.inRange(hsv, lower, upper)
-        mask = cv2.bitwise_not(mask)  # Membalik mask
+        mask = cv2.bitwise_not(mask)
         kernel = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]], dtype=np.uint8)
-        m = mask.copy()
 
-        # Operasi erosi dan dilasi untuk mengurangi noise
         mask = cv2.erode(mask, kernel, iterations=2)
         mask = cv2.dilate(mask, kernel, iterations=2)
 
         foreground = cv2.bitwise_and(frame, frame, mask=mask)
 
-        # Konversi foreground ke skala abu-abu untuk mencari kontur
         gray_foreground = cv2.cvtColor(foreground, cv2.COLOR_BGR2GRAY)
 
-        # Cari kontur pada foreground (citra biner)
         contours, _ = cv2.findContours(
-            gray_foreground, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            gray_foreground, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         fixed_width = 224
         fixed_height = 224
 
         for idx, contour in enumerate(contours):
-            # Mengabaikan kontur kecil yang mungkin hanya noise
             if cv2.contourArea(contour) < 5000:
                 continue
 
-            # Dapatkan kotak rotasi minimal untuk setiap kontur
             rect = cv2.minAreaRect(contour)
-            # Mendapatkan empat titik sudut dari kotak rotasi
             box = cv2.boxPoints(rect)
-            box = np.int0(box)  # Mengubah koordinat ke tipe integer
+            box = np.int0(box)
             center = rect[0]
-            center_x, center_y = center
-            # to int
-            center_x = int(center_x)
-            center_y = int(center_y)
+            center_x, center_y = int(center[0]), int(center[1])
 
-            # Gambar kotak di sekitar objek (kartu poker) sesuai rotasi
-
-            # Mengurutkan titik sudut agar selalu menjadi urutan (top-left, top-right, bottom-right, bottom-left)
-            # 1. Menjumlahkan koordinat untuk menentukan top-left dan bottom-right
             s = np.sum(box, axis=1)
-            tl = box[np.argmin(s)]  # Top-left memiliki jumlah koordinat terkecil
-            br = box[np.argmax(s)]  # Bottom-right memiliki jumlah koordinat terbesar
+            tl = box[np.argmin(s)]
+            br = box[np.argmax(s)]
 
-            # 2. Menghitung selisih koordinat untuk menentukan top-right dan bottom-left
             diff = np.diff(box, axis=1)
-            tr = box[np.argmin(diff)]  # Top-right memiliki selisih terkecil
-            bl = box[np.argmax(diff)]  # Bottom-left memiliki selisih terbesar
+            tr = box[np.argmin(diff)]
+            bl = box[np.argmax(diff)]
 
-            # 3. Membuat array yang berisi titik sudut yang telah diurutkan
             ordered_pts = np.array([tl, tr, br, bl], dtype="float32")
 
-            # Tentukan titik tujuan (corners) setelah kartu diluruskan dengan orientasi portrait
-            dst_pts = np.array([[0, 0], [fixed_width - 1, 0], [fixed_width - 1,
-                                                            fixed_height - 1], [0, fixed_height - 1]], dtype="float32")
+            dst_pts = np.array([[0, 0], [fixed_width - 1, 0], [fixed_width - 1, fixed_height - 1], [0, fixed_height - 1]], dtype="float32")
 
-            # Mendapatkan matriks transformasi perspektif
-            M = cv2.getPerspectiveTransform(ordered_pts, dst_pts)
+            mask = cv2.getPerspectiveTransform(ordered_pts, dst_pts)
 
-            # Lakukan transformasi perspektif untuk meluruskan kartu
-            flattened_card = cv2.warpPerspective(frame, M, (fixed_width, fixed_height))
-            # Tampilkan hasil kartu yang telah diluruskan
+            flattened_card = cv2.warpPerspective(frame, mask, (fixed_width, fixed_height))
+            
+            cv2.imshow("Flattened Card", flattened_card)
 
             cv2.drawContours(frame, [box], 0, (0, 255, 0), 2)
 
-            # flattened card to rgb
             flattened_card = cv2.cvtColor(flattened_card, cv2.COLOR_BGR2RGB)
 
-            # Ukuran flattened_card
             resized_card = cv2.resize(flattened_card, (150, 150))
             input_data = np.expand_dims(resized_card, axis=0)
-            # plt.imshow(flattened_card)
-            # plt.show()
 
             predictions = model.predict(input_data, verbose=0)
             class_id = np.argmax(predictions)
             confidence = predictions[0][class_id]
             label = labels[class_id]
             cards.append(label)
-            
-             # Pisahkan kartu berdasarkan garis tengah
+
             if center_y < mid_line_y:
-                dealer_cards.append(label)  # Kartu di atas garis untuk bandar
+                dealer_cards.append(label)
             else:
-                player_cards.append(label)  # Kartu di bawah garis untuk player
+                player_cards.append(label)
 
             text = f"{label}"
             (text_width, text_height), baseline = cv2.getTextSize(
                 text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2
             )
-            text_x = center_x - (text_width // 2)  # Menempatkan teks di tengah sesuai lebar teks
-            text_y = center_y - 10 
+            text_x = center_x - (text_width // 2)
+            text_y = center_y - 10
             cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 2)
 
-        
-        # Draw horizontal line
         cv2.line(frame, (0, frame.shape[0]//2), (frame.shape[1], frame.shape[0]//2), (0, 255, 0), 2)
-        # Hitung skor untuk dealer dan player
+
         dealer_score = calculate_blackjack_score(dealer_cards)
         player_score = calculate_blackjack_score(player_cards)
 
-        # Tampilkan skor pada frame
         cv2.putText(frame, f"Dealer Score: {dealer_score}", (10, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
         cv2.putText(frame, f"Player Score: {player_score}", (10, frame_height - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-
-    
 
     current_time = time.time()
 
@@ -355,7 +327,7 @@ while True:
 
     if cv2.waitKey(1) == ord('q'):
         break
-    elif cv2.waitKey(1) == ord('1'): # jika 1 ditekan
+    elif cv2.waitKey(1) == ord('1'): 
         state = 0
 
 cam.release()
