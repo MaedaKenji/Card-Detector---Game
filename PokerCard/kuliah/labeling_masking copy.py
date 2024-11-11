@@ -186,7 +186,7 @@ def calculate_blackjack_score(cards):
     return total_score
 
 
-model = load_model("kuliah/model.h5")
+model = load_model("kuliah/model2.h5")
 dataset_path = "dataset/train"  
 labels = sorted(os.listdir(dataset_path))
 state = 0
@@ -195,8 +195,8 @@ count = 0
 fps_history = collections.deque(maxlen=10)
 
 # input_source = "play2_2.mp4"
-# input_source = "image.jpg"
-input_source = "dump.mp4"
+input_source = "image.jpg"
+# input_source = "dump.mp4"
 # input_source = 0
 
 cam = cv2.VideoCapture(input_source)
@@ -251,16 +251,27 @@ while True:
             rect = cv2.minAreaRect(contour)
             box = cv2.boxPoints(rect)
             box = np.int0(box)
+            
             center = rect[0]
             center_x, center_y = int(center[0]), int(center[1])
+            cv2.drawContours(frame, [box], 0, (0, 255, 0), 2)
 
-            s = np.sum(box, axis=1)
-            tl = box[np.argmin(s)]
-            br = box[np.argmax(s)]
+            # Ambil empat titik dari box
+            box = np.array(box)
 
-            diff = np.diff(box, axis=1)
-            tr = box[np.argmin(diff)]
-            bl = box[np.argmax(diff)]
+            # Step 1: Sort berdasarkan y-coordinate (untuk menentukan atas dan bawah)
+            box = box[np.argsort(box[:, 1])]
+
+            # Step 2: Tentukan top-left (tl) dan top-right (tr) dari dua titik teratas
+            tl, tr = sorted(box[:2], key=lambda x: x[0])
+
+            # Step 3: Tentukan bottom-left (bl) dan bottom-right (br) dari dua titik terbawah
+            bl, br = sorted(box[2:], key=lambda x: x[0])
+            
+            # Check if corners are unique
+            if len({tuple(tl), tuple(tr), tuple(bl), tuple(br)}) != 4:
+                print("Corners are not unique, skipping this box.")
+           
 
             ordered_pts = np.array([tl, tr, br, bl], dtype="float32")
 
@@ -269,10 +280,10 @@ while True:
             mask = cv2.getPerspectiveTransform(ordered_pts, dst_pts)
 
             flattened_card = cv2.warpPerspective(frame, mask, (fixed_width, fixed_height))
-            
-            cv2.imshow("Flattened Card", flattened_card)
 
-            cv2.drawContours(frame, [box], 0, (0, 255, 0), 2)
+            flattened_cards.append(flattened_card)
+            for i in range(len(flattened_cards)):
+                cv2.imshow(f"Flattened Card {i+1}", flattened_cards[i])
 
             flattened_card = cv2.cvtColor(flattened_card, cv2.COLOR_BGR2RGB)
 
@@ -296,7 +307,7 @@ while True:
             )
             text_x = center_x - (text_width // 2)
             text_y = center_y - 10
-            cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 2)
+            cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 0, 255), 2)
 
         cv2.line(frame, (0, frame.shape[0]//2), (frame.shape[1], frame.shape[0]//2), (0, 255, 0), 2)
 
